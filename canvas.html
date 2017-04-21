@@ -16,9 +16,10 @@
 <script>
 window.size = 20;
 window.canvas = document.getElementById('canvas');
-window.context = canvas.getContext('2d');
+window.context = window.canvas.getContext('2d');
 (function() {
   var mouseDown = 0;
+  var touch = false;
   document.body.addEventListener('mousedown', function() { 
     // ++mouseDown;
     mouseDown = 1;
@@ -29,7 +30,7 @@ window.context = canvas.getContext('2d');
   }, true);
 
   function e(e) {
-    if (mouseDown) {
+    if (mouseDown || touch) {
       setTimeout(function() {
         shapes[window.shape || 'rect'](e.x, e.y, window.size, window.context);
       }, 0);
@@ -39,6 +40,13 @@ window.context = canvas.getContext('2d');
   var evts = ['mousemove', 'mousedown', 'mouseup', 'touch', 'touchstart', 'touchend'];
   for (var i = 0; i < evts.length; i++) {
     window.canvas.addEventListener(evts[i], e, true);
+  }
+  function isTouch() {
+    touch = true;
+  }
+  var touchEvts = ['touch', 'touchstart', 'touchend'];
+  for (i = 0; i < touchEvts.length; i++) {
+    window.canvas.addEventListener(touchEvts[i], isTouch, true);
   }
 
   function star(x, y, r, ctx, n, skip, rotate) {
@@ -96,7 +104,7 @@ window.context = canvas.getContext('2d');
 window.bg = function(v) {
   var oldFill = window.context.fillStyle;
   window.context.fillStyle = v;
-  window.context.fillRect(0, 0, canvas.width, canvas.height);
+  window.context.fillRect(0, 0, window.canvas.width, window.canvas.height);
   window.context.fillStyle = oldFill;
 };
 </script>
