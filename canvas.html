@@ -45,8 +45,8 @@ window.context = canvas.getContext('2d');
     rotate = (rotate || 0) + Math.PI / 2 * 3;
     skip = skip || (Math.floor(n / 2) + 1);
     n = n || 5;
-    points = new Array(n);
-    theta = (2 * Math.PI) / n;
+    var points = new Array(n);
+    var theta = (2 * Math.PI) / n;
     for (var i = n; i--;) {
       var ttheta = theta * i + rotate;
       points[i] = [r * Math.cos(ttheta), r * Math.sin(ttheta)];
@@ -67,7 +67,7 @@ window.context = canvas.getContext('2d');
       ctx.moveTo(point[0] + x, point[1] + y);
       while (point !== null) {
         ctx.lineTo(point[0] + x, point[1] + y);
-        i = (i + skip) % n;
+        i = (((i + skip) % n) + n) % n;
         point = points[i];
         points[i] = null;
       }
@@ -84,7 +84,7 @@ window.context = canvas.getContext('2d');
       ctx.fill();
     },
     star: function(x, y, r, ctx) {
-      star(x, y, r, ctx, 5, 3, 0);
+      star(x, y, r, ctx, window.points || 5, window.skip || null, 0);
     },
     david: function(x, y, r, ctx) {
       star(x, y, r, ctx, 6, 2, 0);
@@ -101,12 +101,16 @@ window.bg = function(v) {
 <br><pre>
 Background colour: <input type="color" oninput="window.bg(this.value);" value="#FFFFFF"><br>
 Shape colour: <input type="color" oninput="window.context.fillStyle = this.value;"><br>
-Shape: <select oninput="window.shape = this.value;">
+Shape: <select oninput="window.shape = this.value; if (this.value == 'star') { document.getElementById('star').removeAttribute('hidden') } else { document.getElementById('star').setAttribute('hidden', 'hidden') }">
   <option value="rect">Square</option>
   <option value="circle">Circle</option>
   <option value="star">Star</option>
   <option value="david">Star of David</option>
 </select><br>
+<span id="star" hidden="hidden">
+Points: <input type="number" oninput="if (!isNaN(this.value)) window.points = +this.value;" value="5" step="1" min="2" max="50"><br>
+Skip: <input type="number" oninput="if (!isNaN(this.value)) window.skip = +this.value;" value="0" step="1" min="1"><br>
+</span>
 Size: <input type="number" oninput="if (!isNaN(this.value)) window.size = +this.value;" value="20" step="any" min="0" max="500">
 </pre></body>
 </html>
