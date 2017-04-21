@@ -30,7 +30,9 @@ window.context = canvas.getContext('2d');
 
   function e(e) {
     if (mouseDown) {
-      shapes[window.shape || 'rect'](e.x, e.y, window.size, window.context);
+      setTimeout(function() {
+        shapes[window.shape || 'rect'](e.x, e.y, window.size, window.context);
+      }, 0);
     }
   }
 
@@ -109,7 +111,7 @@ Shape: <select oninput="window.shape = this.value; if (this.value == 'star') { d
 </select><br>
 <span id="star" hidden="hidden">
 Points: <input type="number" oninput="if (!isNaN(this.value)) window.points = +this.value;" value="5" step="1" min="2" max="50"><br>
-Skip: <input type="number" oninput="if (!isNaN(this.value)) window.skip = +this.value;" value="0" step="1" min="1"><br>
+Skip: <input type="number" oninput="if (!isNaN(this.value)) window.skip = +this.value;" value="0" step="1" min="0"><br>
 </span>
 Size: <input type="number" oninput="if (!isNaN(this.value)) window.size = +this.value;" value="20" step="any" min="0" max="500">
 </pre></body>
