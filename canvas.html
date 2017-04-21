@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Canvas</title>
+<style>
+#canvas {
+  outline: 2px solid black;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas" width="500" height="500">
+<h1>Your browser does not support the canvas element</h1>
+</canvas>
+<script>
+window.size = 20;
+window.canvas = document.getElementById('canvas');
+window.context = canvas.getContext('2d');
+(function() {
+  var mouseDown = 0;
+  document.body.addEventListener('mousedown', function() { 
+    // ++mouseDown;
+    mouseDown = 1;
+  }, true);
+  document.body.addEventListener('mouseup', function() {
+    // --mouseDown;
+    mouseDown = 0;
+  }, true);
+
+  function e(e) {
+    if (mouseDown) {
+      shapes[window.shape || 'rect'](e.x, e.y, window.size, window.context);
+    }
+  }
+
+  var evts = ['mousemove', 'mousedown', 'mouseup', 'touch', 'touchstart', 'touchend'];
+  for (var i = 0; i < evts.length; i++) {
+    window.canvas.addEventListener(evts[i], e, true);
+  }
+
+  function star(x, y, r, ctx, n, skip, rotate) {
+    x -= r / 2;
+	y -= r / 2;
+    rotate = (rotate || 0) + Math.PI / 2 * 3;
+    skip = skip || (Math.floor(n / 2) + 1);
+    n = n || 5;
+    points = new Array(n);
+    theta = (2 * Math.PI) / n;
+    for (var i = n; i--;) {
+      var ttheta = theta * i + rotate;
+      points[i] = [r * Math.cos(ttheta), r * Math.sin(ttheta)];
+    }
+    ctx.beginPath();
+    while (true) {
+      var point = null;
+      for (var i = 0; i < points.length; i++) {
+        if (points[i] !== null) {
+          point = points[i];
+          break;
+        }
+      }
+      if (point === null) {
+        ctx.fill();
+    	return;
+      }
+      ctx.moveTo(point[0] + x, point[1] + y);
+      while (point !== null) {
+        ctx.lineTo(point[0] + x, point[1] + y);
+        i = (i + skip) % n;
+        point = points[i];
+        points[i] = null;
+      }
+    }
+  }
+
+  var shapes = {
+    rect: function(x, y, r, ctx) {
+      ctx.fillRect(x - r / 2, y - r / 2, r, r);
+    },
+    circle: function(x, y, r, ctx) {
+      ctx.beginPath();
+      ctx.arc(x, y, r / 2, 0, 2 * Math.PI);
+      ctx.fill();
+    },
+    star: function(x, y, r, ctx) {
+      star(x, y, r, ctx, 5, 3, 0);
+    },
+    david: function(x, y, r, ctx) {
+      star(x, y, r, ctx, 6, 2, 0);
+	}
+  }
+})();
+window.bg = function(v) {
+  var oldFill = window.context.fillStyle;
+  window.context.fillStyle = v;
+  window.context.fillRect(0, 0, canvas.width, canvas.height);
+  window.context.fillStyle = oldFill;
+};
+</script>
+<br><pre>
+Background colour: <input type="color" oninput="window.bg(this.value);" value="#FFFFFF"><br>
+Shape colour: <input type="color" oninput="window.context.fillStyle = this.value;"><br>
+Shape: <select oninput="window.shape = this.value;">
+  <option value="rect">Square</option>
+  <option value="circle">Circle</option>
+  <option value="star">Star</option>
+  <option value="david">Star of David</option>
+</select><br>
+Size: <input type="number" oninput="if (!isNaN(this.value)) window.size = +this.value;" value="20" min="1" max="500">
+</pre></body>
+</html>
