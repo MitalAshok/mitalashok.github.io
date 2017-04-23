@@ -19,6 +19,7 @@ body {
   display: none;
 }
 #canvas-holder {
+  cursor: crosshair;
   display: inline-block;
   padding: 2em;
 }
@@ -42,12 +43,12 @@ window['canvas-holder'] = document.getElementById('canvas-holder');
 window.main = function() {
   var bounds = window.canvas.getBoundingClientRect();
   function evtHandler(e) {console.log('E!');
-    var buttons = e.buttons;
+    var buttons = e.buttons === void(0) ? 1 : e.buttons;
     if (touch || buttons & 1 || buttons & 2 || buttons & 4) {
       setTimeout(function() {
         shapes[window.shape || 'circle'](e.pageX - bounds.left, e.pageY - bounds.top, window.size, window.context);
       }, 0);
-      e.preventDefault();
+      e.preventDefault && e.preventDefault();
     }
   }
   var touch = false;
@@ -57,7 +58,6 @@ window.main = function() {
   }
   function touchHandler(e) {
     for (var i = 0; i < e.changedTouches.length; i++) {
-      e.changedTouches[i].buttons = 1;
       evtHandler(e.changedTouches[i]);
     }
     e.preventDefault();
