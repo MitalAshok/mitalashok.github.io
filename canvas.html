@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Canvas</title>
+<style>
+#canvas {
+  outline: 2px solid black;
+}
+html, body {
+  overflow-x: hidden;
+}
+body {
+  position: relative;
+  padding: 2em;
+  margin: 1em;
+}
+#download {
+  display: none;
+}
+#canvas-holder {
+  cursor: crosshair;
+  display: inline-block;
+  padding: 2em;
+}
+</style>
+</head>
+<body>
+<span id="canvas-holder">
+  <canvas id="canvas" width="500" height="500"><h1>Your browser does not support the canvas element</h1></canvas>
+</span>
+<a id="download" download="canvas.png"></a>
+<script>
+window.download = document.getElementById('download');
+window.size = 20;
+window.canvas = document.getElementById('canvas');
+window.context = window.canvas.getContext('2d');
+window.onerror = function (message, url, lineNo){
+    console.log('Error: ' + message + '\n' + 'Line Number: ' + lineNo);
+    return true;
+}
+window['canvas-holder'] = document.getElementById('canvas-holder');
+window.main = function() {
+  var bounds = window.canvas.getBoundingClientRect();
+  function evtHandler(e) {console.log('E!');
+    var buttons = e.buttons === void(0) ? 1 : e.buttons;
+    if (touch || buttons & 1 || buttons & 2 || buttons & 4) {
+      setTimeout(function() {
+        shapes[window.shape || 'circle'](e.pageX - bounds.left, e.pageY - bounds.top, window.size, window.context);
+      }, 0);
+      e.preventDefault && e.preventDefault();
+    }
+  }
+  var touch = false;
+  var evts = ['mousemove', 'mousedown'];
+  for (var i = 0; i < evts.length; i++) {
+    window['canvas-holder'].addEventListener(evts[i], evtHandler, true);
+  }
+  function touchHandler(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      evtHandler(e.changedTouches[i]);
+    }
+    e.preventDefault();
+  }
+  var touchEvts = ['touchmove', 'touchstart'];
+  for (i = 0; i < touchEvts.length; i++) {
+    window['canvas-holder'].addEventListener(touchEvts[i], touchHandler, true);
+  }
+
+  function star(x, y, r, ctx, n, skip, rotate) {
+    x -= r / 2;
+    y -= r / 2;
+    rotate = (rotate || 0) + Math.PI / 2 * 3;
+    skip = skip || (Math.floor(n / 2) + 1);
+    n = n || 5;
+    var points = new Array(n);
+    var theta = (2 * Math.PI) / n;
+    for (var i = n; i--;) {
+      var ttheta = theta * i + rotate;
+      points[i] = [r * Math.cos(ttheta), r * Math.sin(ttheta)];
+    }
+    ctx.beginPath();
+    while (true) {
+      var point = null;
+      for (i = 0; i < points.length; i++) {
+        if (points[i] !== null) {
+          point = points[i];
+          break;
+        }
+      }
+      if (point === null) {
+        ctx.fill();
+        return;
+      }
+      ctx.moveTo(point[0] + x, point[1] + y);
+      while (point !== null) {
+        ctx.lineTo(point[0] + x, point[1] + y);
+        i = (((i + skip) % n) + n) % n;
+        point = points[i];
+        points[i] = null;
+      }
+    }
+  }
+
+  var shapes = {
+    rect: function(x, y, r, ctx) {
+      ctx.fillRect(x - r / 2, y - r / 2, r, r);
+    },
+    circle: function(x, y, r, ctx) {
+      ctx.beginPath();
+      ctx.arc(x, y, r / 2, 0, 2 * Math.PI);
+      ctx.fill();
+    },
+    star: function(x, y, r, ctx) {
+      star(x, y, r, ctx, window.points || 5, window.skip || null, 0);
+    }
+  };
+};
+window.main();
+window.bg = function(v) {
+  var oldFill = window.context.fillStyle;
+  window.context.fillStyle = v;
+  window.context.fillRect(0, 0, window.canvas.width, window.canvas.height);
+  window.context.fillStyle = oldFill;
+};
+window.downloader = function() {
+  window.canvas.toBlob(function(blob) {
+    var url = URL.createObjectURL(blob);
+    window.download.href = url;
+    window.download.click();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+}
+
+window.reset = function() {
+  window.localStorage.bg = '#FFFFFF';
+  window.localStorage.fg = '#000000';
+  window.localStorage.shape = 'circle';
+  window.localStorage.points = '5';
+  window.localStorage.skip = '0';
+  window.localStorage.size = '20';
+  window.redo();
+}
+
+window.redo = function() {
+  if (window.localStorage) {
+    if (window.localStorage.bg) {
+      document.getElementById('bg-p').value = window.localStorage.bg;
+    }
+    window.bg(document.getElementById('bg-p').value);
+    if (window.localStorage.fg) {
+      document.getElementById('fg-p').value = window.context.fillStyle = window.localStorage.fg;
+    }
+    if (window.localStorage.shape) {
+      document.getElementById('shape-p').value = window.shape = window.localStorage.shape;
+      if (window.shape === 'star') {
+        document.getElementById('star').removeAttribute('hidden');
+      } else {
+        document.getElementById('star').setAttribute('hidden', 'hidden');
+      }
+    }
+    if (window.localStorage.points) {
+      document.getElementById('points-p').value = window.points = window.localStorage.points;
+    }
+    if (window.localStorage.skip) {
+      document.getElementById('skip-p').value = window.skip = window.localStorage.skip;
+    }
+    if (window.localStorage.size) {
+      document.getElementById('size-p').value = window.size = window.localStorage.size;
+    }
+  } else {
+    window.localStorage = {};
+  }
+}
+
+</script>
+<br><pre>
+Background colour: <input id="bg-p" type="color" oninput="window.bg(this.value); window.localStorage.bg = this.value;" value="#FFFFFF"><br>
+Shape colour: <input id="fg-p" type="color" oninput="window.localStorage.fg = window.context.fillStyle = this.value;" value="#000000"><br>
+Shape: <select id="shape-p" oninput="window.localStorage.shape = window.shape = this.value; if (this.value == 'star') { document.getElementById('star').removeAttribute('hidden'); } else { document.getElementById('star').setAttribute('hidden', 'hidden'); }">
+  <option value="circle">Circle</option>
+  <option value="rect">Square</option>
+  <option value="star">Star</option>
+</select><br>
+<span id="star" hidden="hidden">
+Points: <input id="points-p" type="number" oninput="if (!isNaN(this.value)) {window.points = +this.value; window.localStorage.points = this.value;}" value="5" step="1" min="2" max="50"><br>
+Skip: <input id="skip-p" type="number" oninput="if (!isNaN(this.value)) {window.skip = +this.value; window.localStorage.skip = this.value;}" value="0" step="1" min="0"><br>
+</span>
+Size: <input id="size-p" type="number" oninput="if (!isNaN(this.value)) {window.size = +this.value; window.localStorage.size = this.value;}" value="20" step="any" min="0" max="500"><br>
+<input type="submit" onclick="window.downloader();" value="Download image"><br>
+<input type="reset" onclick="window.reset()" value="Reset"><br>
+</pre>
+<script>window.redo();</script>
+</body>
+</html>
