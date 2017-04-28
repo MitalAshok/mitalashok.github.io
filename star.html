@@ -145,13 +145,20 @@ body {
     points: document.getElementById('points'),
     skip: document.getElementById('skip'),
     svg: document.getElementById('svg')
-  }
+  };
+  var bound = function(n) {
+    n = +n;
+    if (n < 0) {
+      return 0;
+    }
+    return n > 500 ? 500 : n;
+  };
   var multiplier = localStorage.multiplier || 1;
-  els.points.value = window.points = localStorage.points === undefined ? 5 : +localStorage.points;
-  els.skip.value = window.skip = localStorage.skip === undefined ? 2 : +localStorage.skip;
+  els.points.value = window.points = localStorage.points === undefined ? 5 : bound(localStorage.points);
+  els.skip.value = window.skip = localStorage.skip === undefined ? 2 : bound(localStorage.skip);
   window.u = function() {
     var points = +els.points.value;
-    if (!isNaN(points) && (points % 1 === 0) && (points >= 0)) {
+    if (!isNaN(points) && (points % 1 === 0) && (points >= 0) && (points <= 500)) {
       localStorage.points = '' + points;
       window.points = points;
     }
@@ -161,24 +168,47 @@ body {
       window.skip = skip;
     }
     window.redraw();
-  }
+  };
   window.a = function(inc, el) {
     window.u();
-    if (window[el] + inc < 0) {
-      window[el] = 0;
-      els[el].value = window[el];
+    els[el].value = window[el] = bound(window[el] + inc);
+    window.redraw();
+  };
+
+  window.last_node = null;
+
+  var decolour = function(el) {
+    el.setAttribute('fill', 'rgba(0,0,0,0)');
+    el.removeAttribute('stroke');
+    el.removeAttribute('stroke-width');
+  };
+
+  window.s = function(el) {
+    var i = +el.getAttribute('data-i');
+    if (i === window.last_node) {
+      window.last_node = null;
+      decolour(el);
       return;
     }
-    window[el] += inc;
-    els[el].value = window[el];
-    window.redraw();
-  }
+    if (window.last_node === null) {
+      window.last_node = i;
+      el.setAttribute('fill', 'white');
+      el.setAttribute('stroke', 'black');
+      el.setAttribute('stroke-width', 3 * multiplier);
+      return;
+    }
+    els.skip.value = window.skip = (i - window.last_node + window.drawn_points) % window.drawn_points;
+    decolour(el);
+    decolour(el.parentElement.querySelector('[data-i="' + window.last_node + '"]'));
+    window.last_node = null;
+    window.u();
+  };
 
   window.onresize = window.redraw = function() {
     var svg = '';
     var size = els.svg.parentElement.offsetHeight;
     if (size < 50) {
-      el.svg.innerHTML = '';
+      els.svg.innerHTML = '';
       return;
     }
     var c = size / 2;
@@ -189,6 +219,7 @@ body {
     var y = x;
     var rotate = Math.PI / 2 * 3;
     var n = window.points;
+    window.drawn_points = n;
     var skip = window.skip; // || (n == 2 ? 1 : Math.floor(n / 2) + 1);
     var points = new Array(n);
     var theta = (2 * Math.PI) / n;
@@ -196,8 +227,12 @@ body {
       var ttheta = theta * i + rotate;
       var px = r * Math.cos(ttheta) + 2 * x;
       var py = r * Math.sin(ttheta) + 2 * y;
-      svg += '<circle cx="' + px + '" cy="' + py + '" r="' + (20 * multiplier);
-      svg += '" stroke="black" stroke-width="' + (3 * multiplier) + '" fill="white" />';
+      svg += '<circle data-i="' + i + '" cx="' + px + '" cy="' + py + '" r="' + (20 * multiplier) + '" onclick="window.s(this);" style="cursor:pointer;" ';
+
+      // svg += 'stroke="black" stroke-width="' + (3 * multiplier) + '" fill="white" ';
+      svg += 'fill="rgba(0,0,0,0)" ';
+
+      svg += '/>';
       points[i] = [px, py];
     }
     var lines = '';
@@ -217,17 +252,17 @@ body {
       var next;
       while (point !== null) {
         next = [point[0], point[1]];
-        
+
         lines += '<line x1="' + last[0] + '" y1="' + last[1] + '" x2="';
         lines += next[0] + '" y2="' + next[1] + '" style="stroke:black; stroke-width:' + (3 * multiplier) + ';" />';
         last = next;
-        
+
         i = (((i + skip) % n) + n) % n;
         point = points[i];
         points[i] = null;
       }
     }
-  }
+  };
   window.redraw();
 
 })();
