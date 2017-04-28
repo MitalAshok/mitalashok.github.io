@@ -40,13 +40,26 @@ window.onerror = function (message, url, lineNo){
     return true;
 }
 window['canvas-holder'] = document.getElementById('canvas-holder');
+window.shapes = {
+  rect: function(x, y, r, ctx) {
+    ctx.fillRect(x - r / 2, y - r / 2, r, r);
+  },
+  circle: function(x, y, r, ctx) {
+    ctx.beginPath();
+    ctx.arc(x, y, r / 2, 0, 2 * Math.PI);
+    ctx.fill();
+  },
+  star: function(x, y, r, ctx) {
+    draw_star(x, y, r, ctx, window.points || 5, window.skip || null, 0);
+  }
+};
 window.main = function() {
   var bounds = window.canvas.getBoundingClientRect();
-  function evtHandler(e) {console.log('E!');
+  function evtHandler(e) {
     var buttons = e.buttons === void(0) ? 1 : e.buttons;
     if (touch || buttons & 1 || buttons & 2 || buttons & 4) {
       setTimeout(function() {
-        shapes[window.shape || 'circle'](e.pageX - bounds.left, e.pageY - bounds.top, window.size, window.context);
+        window.shapes[window.shape || 'circle'](e.pageX - bounds.left, e.pageY - bounds.top, window.size, window.context);
       }, 0);
       e.preventDefault && e.preventDefault();
     }
@@ -67,7 +80,13 @@ window.main = function() {
     window['canvas-holder'].addEventListener(touchEvts[i], touchHandler, true);
   }
 
-  function star(x, y, r, ctx, n, skip, rotate) {
+  function draw_star(x, y, r, ctx, n, skip, rotate) {
+    ctx.beginPath();
+    star(x, y, r, n, skip, rotate, ctx.moveTo, ctx.lineTo, ctx);
+    ctx.fill();
+  }
+
+  function star(x, y, r, n, skip, rotate, move_to, line_to, context) {
     x -= r / 2;
     y -= r / 2;
     rotate = (rotate || 0) + Math.PI / 2 * 3;
@@ -79,7 +98,6 @@ window.main = function() {
       var ttheta = theta * i + rotate;
       points[i] = [r * Math.cos(ttheta), r * Math.sin(ttheta)];
     }
-    ctx.beginPath();
     while (true) {
       var point = null;
       for (i = 0; i < points.length; i++) {
@@ -89,32 +107,17 @@ window.main = function() {
         }
       }
       if (point === null) {
-        ctx.fill();
         return;
       }
-      ctx.moveTo(point[0] + x, point[1] + y);
+      move_to.call(context, point[0] + x, point[1] + y);
       while (point !== null) {
-        ctx.lineTo(point[0] + x, point[1] + y);
+        line_to.call(context, point[0] + x, point[1] + y);
         i = (((i + skip) % n) + n) % n;
         point = points[i];
         points[i] = null;
       }
     }
   }
-
-  var shapes = {
-    rect: function(x, y, r, ctx) {
-      ctx.fillRect(x - r / 2, y - r / 2, r, r);
-    },
-    circle: function(x, y, r, ctx) {
-      ctx.beginPath();
-      ctx.arc(x, y, r / 2, 0, 2 * Math.PI);
-      ctx.fill();
-    },
-    star: function(x, y, r, ctx) {
-      star(x, y, r, ctx, window.points || 5, window.skip || null, 0);
-    }
-  };
 };
 window.main();
 window.bg = function(v) {
@@ -123,14 +126,17 @@ window.bg = function(v) {
   window.context.fillRect(0, 0, window.canvas.width, window.canvas.height);
   window.context.fillStyle = oldFill;
 };
-window.downloader = function() {
+window.downloader = window.canvas.toBlob ? function() {
   window.canvas.toBlob(function(blob) {
     var url = URL.createObjectURL(blob);
     window.download.href = url;
     window.download.click();
     URL.revokeObjectURL(url);
   }, 'image/png');
-}
+} : function() {
+    window.download.href = window.canvas.toDataURL('image/png');
+    window.download.click();
+};
 
 window.reset = function() {
   window.localStorage.bg = '#FFFFFF';
@@ -173,22 +179,51 @@ window.redo = function() {
   }
 }
 
+window.update = function() {
+  window.bg(window.localStorage.bg = document.getElementById('bg-p').value);
+  window.localStorage.fg = window.context.fillStyle = document.getElementById('fg-p').value;
+  var shape = document.getElementById('shape');
+  if (window.shapes.hasOwnProperty(shape)) {
+    window.localStorage.shape = window.shape = shape;
+    if (shape == 'star') {
+      document.getElementById('star').removeAttribute('hidden');
+    } else {
+      document.getElementById('star').setAttribute('hidden', 'hidden');
+    }
+  }
+  var points = document.getElementById('points-p').value;
+  if (!isNaN(points)) {
+    window.points = +points;
+    window.localStorage.points = points;
+  }
+  var points = document.getElementById('skip-p').value;
+  if (!isNaN(skip)) {
+    window.skip = +skip;
+    window.localStorage.skip = skip;
+  }
+  var size = document.getElementById('size-p').value;
+  if (!isNaN(size)) {
+    window.size = +size;
+    window.localStorage.size = size;
+  }
+};
+
 </script>
 <br><pre>
-Background colour: <input id="bg-p" type="color" oninput="window.bg(this.value); window.localStorage.bg = this.value;" value="#FFFFFF"><br>
-Shape colour: <input id="fg-p" type="color" oninput="window.localStorage.fg = window.context.fillStyle = this.value;" value="#000000"><br>
-Shape: <select id="shape-p" oninput="window.localStorage.shape = window.shape = this.value; if (this.value == 'star') { document.getElementById('star').removeAttribute('hidden'); } else { document.getElementById('star').setAttribute('hidden', 'hidden'); }">
+Background colour: <input id="bg-p" type="color" oninput="window.update();" onclick="window.update();" value="#FFFFFF"><br>
+Shape colour: <input id="fg-p" type="color" oninput="window.update();" onclick="window.update();" value="#000000"><br>
+Shape: <select id="shape-p" oninput="window.update();" onclick="window.update();">
   <option value="circle">Circle</option>
   <option value="rect">Square</option>
   <option value="star">Star</option>
 </select><br>
 <span id="star" hidden="hidden">
-Points: <input id="points-p" type="number" oninput="if (!isNaN(this.value)) {window.points = +this.value; window.localStorage.points = this.value;}" value="5" step="1" min="2" max="50"><br>
-Skip: <input id="skip-p" type="number" oninput="if (!isNaN(this.value)) {window.skip = +this.value; window.localStorage.skip = this.value;}" value="0" step="1" min="0"><br>
+Points: <input id="points-p" type="number" oninput="window.update();" onclick="window.update();" value="5" step="1" min="2" max="50"><br>
+Skip: <input id="skip-p" type="number" oninput="window.update();" onclick="window.update();" value="0" step="1" min="0"><br>
 </span>
-Size: <input id="size-p" type="number" oninput="if (!isNaN(this.value)) {window.size = +this.value; window.localStorage.size = this.value;}" value="20" step="any" min="0" max="500"><br>
-<input type="submit" onclick="window.downloader();" value="Download image"><br>
-<input type="reset" onclick="window.reset()" value="Reset"><br>
+Size: <input id="size-p" type="number" oninput="window.update();" onclick="window.update();" value="20" step="any" min="0" max="500"><br>
+<input type="submit" onclick="window.downloader(), window.update();" onclick="window.update();" value="Download image"><br>
+<input type="reset" onclick="window.reset();" value="Reset"><br>
 </pre>
 <script>window.redo();</script>
 </body>

@@ -127,9 +127,7 @@ body {
 </div>
 
 <div class="star">
-<svg id="svg" width="100%" height="100%">
-<rect width="100%" height="100%" fill="blue">
-</svg>
+<svg id="svg" width="100%" height="100%"></svg>
 </div>
 
 </div>
@@ -172,10 +170,11 @@ body {
     window.redraw();
   }
 
-  window.onresize = window.redraw = function() {//debugger;
+  window.onresize = window.redraw = function() {
     var svg = '';
     var size = els.svg.parentElement.offsetHeight;
     if (size < 50) {
+      el.svg.innerHTML = '';
       return;
     }
     var c = size / 2;
@@ -193,7 +192,7 @@ body {
       var ttheta = theta * i + rotate;
       var px = r * Math.cos(ttheta) + 2 * x;
       var py = r * Math.sin(ttheta) + 2 * y;
-      svg += '<circle cx="' + px + '" cy="' + py + '" r="' + (10 * multiplier);
+      svg += '<circle cx="' + px + '" cy="' + py + '" r="' + (20 * multiplier);
       svg += '" stroke="black" stroke-width="' + (3 * multiplier) + '" fill="white" />';
       points[i] = [px, py];
     }
