@@ -172,7 +172,7 @@ body {
     window.redraw();
   }
 
-  window.redraw = function() {//debugger;
+  window.onresize = window.redraw = function() {//debugger;
     var svg = '';
     var size = els.svg.parentElement.offsetHeight;
     if (size < 50) {
