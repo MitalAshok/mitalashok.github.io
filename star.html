@@ -20,13 +20,9 @@ body {
 }
 
 .main-content {
-    /*position: relative;
-    top: 0;
-    left: 0;*/
     top: 0;
     width: 100%;
     height: 100%;
-    /* background: rgb(200, 200, 200); */
 }
 
 .centred-text {
@@ -133,6 +129,8 @@ body {
 <svg id="svg" width="100%" height="100%"></svg>
 </div>
 
+
+
 </div>
 
 <script>
@@ -187,7 +185,7 @@ body {
   els.points.value = window.points = bound_p(localStorage.points);
   els.skip.value = window.skip = bound_s(localStorage.skip);
   window.star_mode = localStorage.star_mode || false;
-  window.dots = localStorage.dots || false;
+  window.dots = localStorage.dots === 'true';
   window.u = function() {
     var points = +els.points.value;
     if (!isNaN(points) && (points % 1 === 0) && (points === bound_p(points))) {
@@ -232,10 +230,12 @@ body {
         els.skip.value = window.skip;
       }
       window.redraw();
+      window.u();
     } else {
       window.u();
       els[el].value = window[el] = (el === 'points' ? bound_p : bound_s)(window[el] + inc);
       window.redraw();
+      window.u();
     }
   };
 
@@ -290,16 +290,16 @@ body {
     var skip = simplify(n, window.skip); // || (n == 2 ? 1 : Math.floor(n / 2) + 1);
     var points = new Array(n);
     var theta = (2 * Math.PI) / n;
-    var fill = window.dots ? ('stroke="black" stroke-width="' + (3 * multiplier) + '" fill="white" ') : 'fill="rgba(0,0,0,0)" ';
+    var fill = '" r="' + (20 * multiplier) +
+      '" onclick="window.s(this);" style="cursor:pointer;" ' +
+      (window.dots ?
+        ('stroke="black" stroke-width="' + (3 * multiplier) + '" fill="white" />') :
+        'fill="rgba(0,0,0,0)" />');
     for (var i = n; i--;) {
       var ttheta = theta * i + rotate;
       var px = r * Math.cos(ttheta) + 2 * x;
       var py = r * Math.sin(ttheta) + 2 * y;
-      svg += '<circle data-i="' + i + '" cx="' + px + '" cy="' + py + '" r="' + (20 * multiplier) + '" onclick="window.s(this);" style="cursor:pointer;" ';
-
-      svg += fill;
-
-      svg += '/>';
+      svg += '<circle data-i="' + i + '" cx="' + px + '" cy="' + py + fill;  // />
       points[i] = [px, py];
     }
     var lines = '';
@@ -315,18 +315,26 @@ body {
         els.svg.innerHTML = lines + svg;
         return;
       }
-      var last = [point[0], point[1]];
-      var next;
+      var path = [];
       while (point !== null) {
-        next = [point[0], point[1]];
+        path.push([point[0], point[1]])
 
-        lines += '<line x1="' + last[0] + '" y1="' + last[1] + '" x2="';
-        lines += next[0] + '" y2="' + next[1] + '" style="stroke:black; stroke-width:' + (3 * multiplier) + ';" />';
-        last = next;
-
-        i = (((i + skip) % n) + n) % n;
-        point = points[i];
         points[i] = null;
+        i = (i + skip) % n;
+        point = points[i];
+      }
+      switch (path.length) {
+        case 1:
+        els.svg.innerHTML = svg;
+        return;
+        case 2:
+        lines += '<line x1="' + path[0][0] + '" y1="' + path[0][1] + '" x2="' +
+          path[1][0] + '" y2="' + path[1][1] + '" style="stroke:black;stroke-width:' +
+          (3 * multiplier) + ';" />'
+        break;
+        default:
+        lines += '<polygon style="fill:rgba(0,0,0,0);stroke:black;stroke-width:' + (3 * multiplier) +
+          ';" points="' + path.join(' ') + '" />';
       }
     }
   };
@@ -367,8 +375,8 @@ body {
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans">
 </noscript>
 <script>
-(function(l, o, a, d) {
-  if (o) o(function() { window.setTimeout(d, 0); });
+(function(l, o, a, d, s) {
+  if (o) o(s(d));
   else a(l, d);
 })(
   'load',
@@ -381,7 +389,8 @@ body {
     t.innerHTML = a.textContent;
     document.body.appendChild(t);
     a.parentElement.removeChild(a);
-  }
+  },
+  function(s) { return function() { window.setTimeout(s, 0); }; }
 );
 </script>
 </body>
