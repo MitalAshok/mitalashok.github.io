@@ -146,16 +146,17 @@ body {
     skip: document.getElementById('skip'),
     svg: document.getElementById('svg')
   };
-  var bound = function(n) {
+  function bound(n) {
     n = +n;
     if (n < 0) {
       return 0;
     }
     return n > 500 ? 500 : n;
-  };
+  }
   var multiplier = localStorage.multiplier || 1;
   els.points.value = window.points = localStorage.points === undefined ? 5 : bound(localStorage.points);
   els.skip.value = window.skip = localStorage.skip === undefined ? 2 : bound(localStorage.skip);
+  window.star_mode = false;
   window.u = function() {
     var points = +els.points.value;
     if (!isNaN(points) && (points % 1 === 0) && (points >= 0) && (points <= 500)) {
@@ -169,10 +170,42 @@ body {
     }
     window.redraw();
   };
+
+  function simplify(points, skip) {
+    if (skip < 0) {
+      skip = -skip;
+    }
+    skip %= points;
+    var other = (points - skip) % points;
+    return (other > skip) ? skip : other;
+  }
+
   window.a = function(inc, el) {
-    window.u();
-    els[el].value = window[el] = bound(window[el] + inc);
-    window.redraw();
+    if (window.star_mode) {
+      window.u();
+      if (el === 'points') {
+        els.points.value = window.points = bound(window.points + inc);
+        return;
+      }
+      var simplified = simplify(window.points, window.skip);
+      if (simplified !== window.skip) {
+        els.skip.value = window.skip = simplified;
+      }
+      if (el === 'skip') {
+        window.skip += inc;
+        if (window.skip === 0) {
+          window.skip = Math.floor(window.points / 2);
+        } else if (window.skip > window.points / 2) {
+          window.skip = 1;
+        }
+        els.skip.value = window.skip;
+      }
+      window.redraw();
+    } else {
+      window.u();
+      els[el].value = window[el] = bound(window[el] + inc);
+      window.redraw();
+    }
   };
 
   window.last_node = null;
@@ -265,8 +298,36 @@ body {
   };
   window.redraw();
 
-})();
+  window.onkeydown = function(e) {
+    var event = e || window.event || {};
+    switch (event.which || event.charCode || event.keyCode || 0) {
+      case 0:
+      return;
+      case 37: case 65: case 74:  // Left arrow, a and j
+      window.a(-1, 'points');
+      break;
+      case 39: case 68: case 76:  // Right arrow, d and l
+      window.a(+1, 'points');
+      break;
+      case 40: case 83: case 75:  // Down arrow, s and k
+      window.a(-1, 'skip');
+      break;
+      case 38: case 87: case 73:  // Up arrow, w and i
+      window.a(+1, 'skip');
+      break;
+      default:
+      return;
+    }
+    if (event.preventDefault) {
+      event.preventDefault();
+    }
+    if (event.stopPropagation) {
+      event.stopPropagation();
+    }
+    return true;
+  };
 
+})();
 </script>
 </body>
 </html>
