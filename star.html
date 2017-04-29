@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Star</title>
 <style>
-@import url('https://fonts.googleapis.com/css?family=Open+Sans');
 html {
     font-family: 'Open Sans', sans-serif;
     height: 100%;
@@ -363,6 +362,27 @@ body {
   };
 
 })();
+</script>
+<noscript id="deferred-styles">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans">
+</noscript>
+<script>
+(function(l, o, a, d) {
+  if (o) o(function() { window.setTimeout(d, 0); });
+  else a(l, d);
+})(
+  'load',
+  window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+  window.webkitRequestAnimationFrame || window.msRequestAnimationFrame,
+  window.addEventListener,
+  function(a, t) {
+    a = document.getElementById('deferred-styles');
+    t = document.createElement('div');
+    t.innerHTML = a.textContent;
+    document.body.appendChild(t);
+    a.parentElement.removeChild(a);
+  }
+);
 </script>
 </body>
 </html>
