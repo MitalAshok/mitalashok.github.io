@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>Star</title>
-<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
 <style>
+@import url('https://fonts.googleapis.com/css?family=Open+Sans');
 html {
     font-family: 'Open Sans', sans-serif;
     height: 100%;
@@ -140,9 +140,10 @@ body {
 (function() {
   var localStorage;
   try {
-    // Access to window.localStorage throws error in Edge
+    // Access to window.localStorage throws error in Edge sometimes
     localStorage = window.localStorage || {};
     // Throws error in Firefox with corrupted database.
+    localStorage.test;
     localStorage.test = '1';
     if (localStorage.test !== '1') {
       try {
@@ -186,7 +187,8 @@ body {
   var multiplier = localStorage.multiplier || 1;
   els.points.value = window.points = bound_p(localStorage.points);
   els.skip.value = window.skip = bound_s(localStorage.skip);
-  window.star_mode = false;
+  window.star_mode = localStorage.star_mode || false;
+  window.dots = localStorage.dots || false;
   window.u = function() {
     var points = +els.points.value;
     if (!isNaN(points) && (points % 1 === 0) && (points === bound_p(points))) {
@@ -241,21 +243,24 @@ body {
   window.last_node = null;
 
   var decolour = function(el) {
-    el.setAttribute('fill', 'rgba(0,0,0,0)');
-    el.removeAttribute('stroke');
-    el.removeAttribute('stroke-width');
+    el.setAttribute('fill', window.dots ? 'white' : 'rgba(0,0,0,0)');
+    if (!window.dots) {
+      el.removeAttribute('stroke');
+      el.removeAttribute('stroke-width');
+    }
   };
 
   window.s = function(el) {
     var i = +el.getAttribute('data-i');
     if (i === window.last_node) {
       window.last_node = null;
-      decolour(el);
+      localStorage.dots = window.dots = !window.dots;
+      window.redraw();
       return;
     }
     if (window.last_node === null) {
       window.last_node = i;
-      el.setAttribute('fill', 'white');
+      el.setAttribute('fill', window.dots ? 'black' : 'white');
       el.setAttribute('stroke', 'black');
       el.setAttribute('stroke-width', 3 * multiplier);
       return;
@@ -281,19 +286,19 @@ body {
     var x = c - 12.5 - r / 2;
     var y = x;
     var rotate = Math.PI / 2 * 3;
-    var n = window.points;
+    var n = bound_p(window.points);
     window.drawn_points = n;
     var skip = simplify(n, window.skip); // || (n == 2 ? 1 : Math.floor(n / 2) + 1);
     var points = new Array(n);
     var theta = (2 * Math.PI) / n;
+    var fill = window.dots ? ('stroke="black" stroke-width="' + (3 * multiplier) + '" fill="white" ') : 'fill="rgba(0,0,0,0)" ';
     for (var i = n; i--;) {
       var ttheta = theta * i + rotate;
       var px = r * Math.cos(ttheta) + 2 * x;
       var py = r * Math.sin(ttheta) + 2 * y;
       svg += '<circle data-i="' + i + '" cx="' + px + '" cy="' + py + '" r="' + (20 * multiplier) + '" onclick="window.s(this);" style="cursor:pointer;" ';
 
-      // svg += 'stroke="black" stroke-width="' + (3 * multiplier) + '" fill="white" ';
-      svg += 'fill="rgba(0,0,0,0)" ';
+      svg += fill;
 
       svg += '/>';
       points[i] = [px, py];
