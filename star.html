@@ -125,7 +125,7 @@ body {
       <span class="fa fa-chevron-down fa-lg skip-down" onclick="window.a(-1, 'skip');"></span>
     </div>
     <div class="float-right">
-      <input type="number" min="0" step="1" value="3" id="skip" oninput="window.u();" onclick="window.u();">
+      <input type="number" step="1" value="3" id="skip" oninput="window.u();" onclick="window.u();">
     </div>
   </div></div>
 </div>
@@ -138,7 +138,25 @@ body {
 
 <script>
 (function() {
-  var localStorage = window.localStorage || {};
+  var localStorage;
+  try {
+    // Access to window.localStorage throws error in Edge
+    localStorage = window.localStorage || {};
+    // Throws error in Firefox with corrupted database.
+    localStorage.test = '1';
+    if (localStorage.test !== '1') {
+      try {
+        window.localStorage.clear();
+      } catch (e) {}
+      localStorage = {};
+    }
+    delete localStorage.test;
+  } catch (e) {
+    try {
+      window.localStorage.clear();
+    } catch (e) {}
+    localStorage = {};
+  }
 
   // Handle settings boxes
   var els = {
@@ -146,25 +164,37 @@ body {
     skip: document.getElementById('skip'),
     svg: document.getElementById('svg')
   };
-  function bound(n) {
+  function bound(n, lower_bound, upper_bound, default_) {
     n = +n;
-    if (n < 0) {
-      return 0;
+    if (isNaN(n)) {
+      return default_;
     }
-    return n > 500 ? 500 : n;
+    if (lower_bound !== undefined && lower_bound !== null && n < lower_bound) {
+      return lower_bound;
+    }
+    if (upper_bound !== undefined && upper_bound !== null && n > upper_bound) {
+      return upper_bound;
+    }
+    return n;
+  }
+  function bound_p(n) {
+    return bound(n, 0, 500, 5);
+  }
+  function bound_s(n) {
+    return bound(n, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, 2);
   }
   var multiplier = localStorage.multiplier || 1;
-  els.points.value = window.points = localStorage.points === undefined ? 5 : bound(localStorage.points);
-  els.skip.value = window.skip = localStorage.skip === undefined ? 2 : bound(localStorage.skip);
+  els.points.value = window.points = bound_p(localStorage.points);
+  els.skip.value = window.skip = bound_s(localStorage.skip);
   window.star_mode = false;
   window.u = function() {
     var points = +els.points.value;
-    if (!isNaN(points) && (points % 1 === 0) && (points >= 0) && (points <= 500)) {
+    if (!isNaN(points) && (points % 1 === 0) && (points === bound_p(points))) {
       localStorage.points = '' + points;
       window.points = points;
     }
     var skip = +els.skip.value;
-    if (!isNaN(skip) && (skip % 1 === 0) && (skip >= 0)) {
+    if (!isNaN(skip) && (skip % 1 === 0) && (skip === bound_s(skip))) {
       localStorage.skip = '' + skip;
       window.skip = skip;
     }
@@ -203,7 +233,7 @@ body {
       window.redraw();
     } else {
       window.u();
-      els[el].value = window[el] = bound(window[el] + inc);
+      els[el].value = window[el] = (el === 'points' ? bound_p : bound_s)(window[el] + inc);
       window.redraw();
     }
   };
@@ -253,7 +283,7 @@ body {
     var rotate = Math.PI / 2 * 3;
     var n = window.points;
     window.drawn_points = n;
-    var skip = window.skip; // || (n == 2 ? 1 : Math.floor(n / 2) + 1);
+    var skip = simplify(n, window.skip); // || (n == 2 ? 1 : Math.floor(n / 2) + 1);
     var points = new Array(n);
     var theta = (2 * Math.PI) / n;
     for (var i = n; i--;) {
