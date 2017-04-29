@@ -371,8 +371,9 @@ body {
 
 })();
 </script>
-<noscript id="deferred-styles">
+<noscript id="deferred">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans">
+  <link rel="shortcut icon" href="star_favicon.ico" type="image/png">
 </noscript>
 <script>
 (function(l, o, a, d, s) {
@@ -384,7 +385,7 @@ body {
   window.webkitRequestAnimationFrame || window.msRequestAnimationFrame,
   window.addEventListener,
   function(a, t) {
-    a = document.getElementById('deferred-styles');
+    a = document.getElementById('deferred');
     t = document.createElement('div');
     t.innerHTML = a.textContent;
     document.body.appendChild(t);
