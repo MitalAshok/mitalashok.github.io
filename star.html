@@ -186,6 +186,7 @@ body {
   els.skip.value = window.skip = bound_s(localStorage.skip);
   window.star_mode = localStorage.star_mode || false;
   window.dots = localStorage.dots === 'true';
+  window.fill_mode = localStorage.fill_mode === 'true';
   window.u = function() {
     var points = +els.points.value;
     if (!isNaN(points) && (points % 1 === 0) && (points === bound_p(points))) {
@@ -282,7 +283,7 @@ body {
 
     var r = multiplier * (c - 25);
 
-    var x = c - 12.5 - r / 2;
+    var x = 2 * c - r - 25;
     var y = x;
     var rotate = Math.PI / 2 * 3;
     var n = bound_p(window.points);
@@ -297,12 +298,22 @@ body {
         'fill="rgba(0,0,0,0)" />');
     for (var i = n; i--;) {
       var ttheta = theta * i + rotate;
-      var px = r * Math.cos(ttheta) + 2 * x;
-      var py = r * Math.sin(ttheta) + 2 * y;
+      var px = r * Math.cos(ttheta) + x;
+      var py = r * Math.sin(ttheta) + y;
       svg += '<circle data-i="' + i + '" cx="' + px + '" cy="' + py + fill;  // />
       points[i] = [px, py];
     }
-    var lines = '';
+    svg += '<circle cx="' + x + '" cy="' + y + '" style="cursor:pointer;" fill="rgba(0,0,0,0)" r="' +
+      (100 * multiplier) + '" onclick="window.localStorage.fill_mode = window.fill_mode = !window.fill_mode, window.redraw();" />';
+    if (n % skip === 0) {
+      els.svg.innerHTML = svg;
+      return;
+    }
+    var fill = window.fill_mode && (skip !== n / 2);
+    var lines = '<path style="' + (fill ?
+      'fill-rule:evenodd' :
+      'fill-opacity:0;stroke:black;stroke-width:' + (3 * multiplier)
+    ) + '" d="';  // />
     while (true) {
       var point = null;
       for (i = 0; i < points.length; i++) {
@@ -312,30 +323,23 @@ body {
         }
       }
       if (point === null) {
-        els.svg.innerHTML = lines + svg;
+        els.svg.innerHTML = lines + '" />' + svg;
         return;
       }
-      var path = [];
-      while (point !== null) {
-        path.push([point[0], point[1]])
-
+      var first_point = point[0] + ' ' + point[1];
+      lines += 'M' + first_point;
+      while (true) {
         points[i] = null;
         i = (i + skip) % n;
         point = points[i];
+
+        if (point === null) {
+            break;
+        } else {
+            lines += ' L' + point[0] + ' ' + point[1];
+        }
       }
-      switch (path.length) {
-        case 1:
-        els.svg.innerHTML = svg;
-        return;
-        case 2:
-        lines += '<line x1="' + path[0][0] + '" y1="' + path[0][1] + '" x2="' +
-          path[1][0] + '" y2="' + path[1][1] + '" style="stroke:black;stroke-width:' +
-          (3 * multiplier) + ';" />'
-        break;
-        default:
-        lines += '<polygon style="fill:rgba(0,0,0,0);stroke:black;stroke-width:' + (3 * multiplier) +
-          ';" points="' + path.join(' ') + '" />';
-      }
+      lines += ' L' + first_point + ' ';
     }
   };
   window.redraw();
