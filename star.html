@@ -346,6 +346,9 @@ body {
 
   window.onkeydown = function(e) {
     var event = e || window.event || {};
+    if (event.ctrlKey || event.shiftKey || event.altKey || event.metaKey) {
+      return;
+    }
     switch (event.which || event.charCode || event.keyCode || 0) {
       case 0:
       return;
