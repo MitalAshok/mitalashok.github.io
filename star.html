@@ -305,11 +305,11 @@ body {
     }
     svg += '<circle cx="' + x + '" cy="' + y + '" style="cursor:pointer;" fill="rgba(0,0,0,0)" r="' +
       (100 * multiplier) + '" onclick="window.localStorage.fill_mode = window.fill_mode = !window.fill_mode, window.redraw();" />';
-    if (n % skip === 0) {
+    if (skip === 0) {
       els.svg.innerHTML = svg;
       return;
     }
-    var fill = window.fill_mode && (skip !== n / 2);
+    var fill = window.fill_mode && (skip !== n - skip);
     var lines = '<path style="' + (fill ?
       'fill-rule:evenodd;fill:#7f7f7f' :
       'fill-opacity:0;stroke:black;stroke-width:' + (3 * multiplier)
@@ -334,9 +334,9 @@ body {
         point = points[i];
 
         if (point === null) {
-            break;
+          break;
         } else {
-            lines += ' L' + point[0] + ' ' + point[1];
+          lines += ' L' + point[0] + ' ' + point[1];
         }
       }
       lines += ' L' + first_point + ' ';
