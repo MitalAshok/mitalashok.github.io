@@ -288,7 +288,7 @@ body {
     var rotate = Math.PI / 2 * 3;
     var n = bound_p(window.points);
     window.drawn_points = n;
-    var skip = simplify(n, window.skip); // || (n == 2 ? 1 : Math.floor(n / 2) + 1);
+    var skip = simplify(n, window.skip);
     var points = new Array(n);
     var theta = (2 * Math.PI) / n;
     var fill = '" r="' + (20 * multiplier) +
@@ -300,18 +300,27 @@ body {
       var ttheta = theta * i + rotate;
       var px = r * Math.cos(ttheta) + x;
       var py = r * Math.sin(ttheta) + y;
-      svg += '<circle data-i="' + i + '" cx="' + px + '" cy="' + py + fill;  // />
+      svg += '<circle ' + (i <= n / 2 ? 'mask="url(#overlap)" ' : '') +
+        'data-i="' + i + '" cx="' + px + '" cy="' + py + fill;  // />
       points[i] = [px, py];
     }
+    var ttheta = theta * (n - 1) + rotate;
+    var px = r * Math.cos(ttheta) + x;
+    var py = r * Math.sin(ttheta) + y;
     svg += '<circle cx="' + x + '" cy="' + y + '" style="cursor:pointer;" fill="rgba(0,0,0,0)" r="' +
       (100 * multiplier) + '" onclick="window.localStorage.fill_mode = window.fill_mode = !window.fill_mode, window.redraw();" />';
+    var inv_clip = size;
+    svg = '<defs><mask id="overlap"><rect x="0" y="0" width="' + inv_clip + '" height="' + inv_clip +
+      '" fill="white" /><circle cx="' + px + '" cy="' + py +
+      '" r="' + (20 * multiplier) + '" stroke-width="' + (3 * multiplier) +
+      '" fill="black" stroke="black" /></mask></defs>' + svg;
     if (skip === 0) {
       els.svg.innerHTML = svg;
       return;
     }
-    var fill = window.fill_mode && (skip !== n - skip);
-    var lines = '<path style="' + (fill ?
-      'fill-rule:evenodd;fill:#7f7f7f' :
+    var fill = window.fill_mode && ((skip === n - skip) ? 'fill-opacity:0;stroke:#7f7f7f;stroke-width:' + (3 * multiplier) : 'fill-rule:evenodd;fill:#7f7f7f');
+    var lines = '<path style="' + (
+      fill ||
       'fill-opacity:0;stroke:black;stroke-width:' + (3 * multiplier)
     ) + '" d="';  // />
     while (true) {
