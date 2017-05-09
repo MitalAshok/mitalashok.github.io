@@ -16,7 +16,7 @@ body {
     margin-left: 10%;
     margin-right: 10%;
     margin-bottom: 0px;
-    background: rgb(240, 240, 240);
+    background: #F0F0F0;
 }
 
 .main-content {
@@ -76,7 +76,7 @@ body {
     margin-right: 0.5em;
 }
 
-.controls .fa {
+.controls .fa, footer span {
     cursor: pointer;
 }
 
@@ -94,6 +94,27 @@ body {
     margin-bottom: 2em;
 }
 
+footer {
+    display: block;
+    background-size: 100% 100%;
+    margin-left: -10vw;
+    margin-right: -10vw;
+    background-color: #E0E0E0;
+    color: #161616;
+    height: 10em;
+}
+
+.footers {
+    width: 50%;
+}
+
+a:focus, a:hover {
+    color: #0065BC;
+}
+
+a {
+    color: #0086FF;
+}
 </style>
 <script src="https://use.fontawesome.com/2b1a6efa59.js" async></script>
 </head>
@@ -124,12 +145,16 @@ body {
     </div>
   </div></div>
 </div>
-
 <div class="star">
 <svg id="svg" width="100%" height="100%"></svg>
 </div>
 
-
+<footer class="centred-text">
+<div class="footers">
+<span class="float-left" onclick="window.p();"><span class="fa fa-link"></span> Permalink</span>
+<span class="float-right">Created by <a href="/">Mital Ashok</a></span>
+</div>
+</footer>
 
 </div>
 
@@ -155,6 +180,44 @@ body {
     } catch (e) {}
     localStorage = {};
   }
+
+  var query_regex = '(?:^|&){}=([^&]*)(?:&|$)';
+  var variables = [
+    ['fill_mode', Boolean],
+    ['skip', Number],
+    ['points', Number],
+    ['dots', Boolean]
+  ];
+  var done = 0;
+  for (var perm = window.location.search || '?'; done != 2; perm = window.location.hash || '#', done++) {
+    perm = perm.slice(1);
+    for (var i = 0; i < variables.length; i++) {
+      var name = variables[i][0];
+      var found = perm.match(new RegExp(query_regex.replace('{}', name)));
+      if (found) {
+        var type = variables[i][1];
+        found = found[1];
+        if (type === Boolean) {
+          localStorage[name] = ((found !== 'false') && Boolean(found)) ? 'true' : 'false';
+        } else {
+          localStorage[name] = '' + type(found);
+        }
+      }
+    }
+  }
+
+  window.p = function() {
+    var search = '?';
+    for (var i = 0; i < variables.length; i++) {
+      search += variables[i][0] + '=' + localStorage[variables[i][0]] + '&';
+    }
+    search = search.slice(0, -1);
+    if (window.location.search === search) {
+      window.location.reload();
+    } else {
+      window.location.search = search;
+    }
+  };
 
   // Handle settings boxes
   var els = {
@@ -202,6 +265,9 @@ body {
   };
 
   function simplify(points, skip) {
+    if (points === 0) {
+      return 0;
+    }
     if (skip < 0) {
       skip = -skip;
     }
@@ -296,29 +362,33 @@ body {
       (window.dots ?
         ('stroke="black" stroke-width="' + (3 * multiplier) + '" fill="white" />') :
         'fill="rgba(0,0,0,0)" />');
+    var ttheta;
+    var px;
+    var py;
     for (var i = n; i--;) {
-      var ttheta = theta * i + rotate;
-      var px = r * Math.cos(ttheta) + x;
-      var py = r * Math.sin(ttheta) + y;
+      ttheta = theta * i + rotate;
+      px = r * Math.cos(ttheta) + x;
+      py = r * Math.sin(ttheta) + y;
       svg += '<circle ' + (i <= n / 2 ? 'mask="url(#overlap)" ' : '') +
         'data-i="' + i + '" cx="' + px + '" cy="' + py + fill;  // />
       points[i] = [px, py];
     }
-    var ttheta = theta * (n - 1) + rotate;
-    var px = r * Math.cos(ttheta) + x;
-    var py = r * Math.sin(ttheta) + y;
     svg += '<circle cx="' + x + '" cy="' + y + '" style="cursor:pointer;" fill="rgba(0,0,0,0)" r="' +
       (100 * multiplier) + '" onclick="window.localStorage.fill_mode = window.fill_mode = !window.fill_mode, window.redraw();" />';
-    var inv_clip = size;
-    svg = '<defs><mask id="overlap"><rect x="0" y="0" width="' + inv_clip + '" height="' + inv_clip +
-      '" fill="white" /><circle cx="' + px + '" cy="' + py +
-      '" r="' + (20 * multiplier) + '" stroke-width="' + (3 * multiplier) +
-      '" fill="black" stroke="black" /></mask></defs>' + svg;
+    if (points !== 0) {
+      ttheta = theta * (n - 1) + rotate;
+      px = r * Math.cos(ttheta) + x;
+      py = r * Math.sin(ttheta) + y;
+      svg = '<defs><mask id="overlap"><rect x="0" y="0" width="' + size + '" height="' + size +
+        '" fill="white" /><circle cx="' + px + '" cy="' + py +
+        '" r="' + (20 * multiplier) + '" stroke-width="' + (3 * multiplier) +
+        '" fill="black" stroke="black" /></mask></defs>' + svg;
+    }
     if (skip === 0) {
       els.svg.innerHTML = svg;
       return;
     }
-    var fill = window.fill_mode && ((skip === n - skip) ? 'fill-opacity:0;stroke:#7f7f7f;stroke-width:' + (3 * multiplier) : 'fill-rule:evenodd;fill:#7f7f7f');
+    fill = window.fill_mode && ((skip === n - skip) ? 'fill-opacity:0;stroke:#7f7f7f;stroke-width:' + (3 * multiplier) : 'fill-rule:evenodd;fill:#7f7f7f');
     var lines = '<path style="' + (
       fill ||
       'fill-opacity:0;stroke:black;stroke-width:' + (3 * multiplier)
@@ -359,8 +429,6 @@ body {
       return;
     }
     switch (event.which || event.charCode || event.keyCode || 0) {
-      case 0:
-      return;
       case 37: case 65: case 74:  // Left arrow, a and j
       window.a(-1, 'points');
       break;
