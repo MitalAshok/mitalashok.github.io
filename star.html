@@ -183,10 +183,10 @@ a {
 
   var query_regex = '(?:^|&){}=([^&]*)(?:&|$)';
   var variables = [
-    ['fill_mode', Boolean],
-    ['skip', Number],
-    ['points', Number],
-    ['dots', Boolean]
+    ['fill_mode', Boolean, 'false'],
+    ['skip', Number, '2'],
+    ['points', Number, '5'],
+    ['dots', Boolean, 'false']
   ];
   var done = 0;
   for (var perm = window.location.search || '?'; done != 2; perm = window.location.hash || '#', done++) {
@@ -209,7 +209,7 @@ a {
   window.p = function() {
     var search = '?';
     for (var i = 0; i < variables.length; i++) {
-      search += variables[i][0] + '=' + localStorage[variables[i][0]] + '&';
+      search += variables[i][0] + '=' + ((variables[i][0] in localStorage) ? localStorage[variables[i][0]] : variables[i][2]) + '&';
     }
     search = search.slice(0, -1);
     if (window.location.search === search) {
