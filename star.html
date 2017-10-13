@@ -181,7 +181,7 @@ a {
     localStorage = {};
   }
 
-  var query_regex = '(?:^|&){}=([^&]*)(?:&|$)';
+  var query_regex = '(?:^[?#]?|&){}=([^&]*)(?:&|$)';
   var variables = [
     ['fill_mode', Boolean, 'false'],
     ['skip', Number, '2'],
@@ -189,7 +189,7 @@ a {
     ['dots', Boolean, 'false']
   ];
   var done = 0;
-  for (var perm = window.location.search || '?'; done != 2; perm = window.location.hash || '#', done++) {
+  for (var perm = window.location.search || '?'; done !== 2; perm = window.location.hash || '#', done++) {
     perm = perm.slice(1);
     for (var i = 0; i < variables.length; i++) {
       var name = variables[i][0];
@@ -241,8 +241,10 @@ a {
   function bound_p(n) {
     return bound(n, 0, 500, 5);
   }
+  var max_safe_int = Number.MAX_SAFE_INTEGER || 9007199254740991;
+  var min_safe_int = Number.MIN_SAFE_INTEGER || -9007199254740991;
   function bound_s(n) {
-    return bound(n, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, 2);
+    return bound(n, min_safe_int, max_safe_int, 2);
   }
   var multiplier = localStorage.multiplier || 1;
   els.points.value = window.points = bound_p(localStorage.points);
@@ -369,7 +371,7 @@ a {
       ttheta = theta * i + rotate;
       px = r * Math.cos(ttheta) + x;
       py = r * Math.sin(ttheta) + y;
-      svg += '<circle ' + (i <= n / 2 ? 'mask="url(#overlap)" ' : '') +
+      svg += '<circle ' + (i + 1 < n / 2 ? 'mask="url(#overlap)" ' : '') +
         'data-i="' + i + '" cx="' + px + '" cy="' + py + fill;  // />
       points[i] = [px, py];
     }
@@ -450,7 +452,7 @@ a {
     if (event.stopPropagation) {
       event.stopPropagation();
     }
-    return true;
+    return false;
   };
 
 })();
