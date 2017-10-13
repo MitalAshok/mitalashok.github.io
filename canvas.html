@@ -31,15 +31,16 @@ body {
 </span>
 <a id="download" download="canvas.png"></a>
 <script>
-window.download = document.getElementById('download');
+var getById = function(id) {
+  return getById.cache[id] || (getById.cache[id] = document.getElementById(id));
+};
+getById.cache = {};
+
+window.download = getById('download');
 window.size = 20;
-window.canvas = document.getElementById('canvas');
+window.canvas = getById('canvas');
 window.context = window.canvas.getContext('2d');
-window.onerror = function (message, url, lineNo){
-    console.log('Error: ' + message + '\n' + 'Line Number: ' + lineNo);
-    return true;
-}
-window['canvas-holder'] = document.getElementById('canvas-holder');
+window['canvas-holder'] = getById('canvas-holder');
 window.shapes = {
   rect: function(x, y, r, ctx) {
     ctx.fillRect(x - r / 2, y - r / 2, r, r);
@@ -50,11 +51,12 @@ window.shapes = {
     ctx.fill();
   },
   star: function(x, y, r, ctx) {
-    draw_star(x, y, r, ctx, window.points || 5, window.skip || null, 0);
+    window.draw_star(x, y, r, ctx, window.points || 5, window.skip || null, 0);
   }
 };
 window.main = function() {
   var bounds = window.canvas.getBoundingClientRect();
+  var touch = false;
   function evtHandler(e) {
     var buttons = e.buttons === void(0) ? 1 : e.buttons;
     if (touch || buttons & 1 || buttons & 2 || buttons & 4) {
@@ -64,7 +66,6 @@ window.main = function() {
       e.preventDefault && e.preventDefault();
     }
   }
-  var touch = false;
   var evts = ['mousemove', 'mousedown'];
   for (var i = 0; i < evts.length; i++) {
     window['canvas-holder'].addEventListener(evts[i], evtHandler, true);
@@ -80,15 +81,13 @@ window.main = function() {
     window['canvas-holder'].addEventListener(touchEvts[i], touchHandler, true);
   }
 
-  function draw_star(x, y, r, ctx, n, skip, rotate) {
+  window.draw_star = function(x, y, r, ctx, n, skip, rotate) {
     ctx.beginPath();
     star(x, y, r, n, skip, rotate, ctx.moveTo, ctx.lineTo, ctx);
     ctx.fill();
-  }
+  };
 
   function star(x, y, r, n, skip, rotate, move_to, line_to, context) {
-    x -= r / 2;
-    y -= r / 2;
     rotate = (rotate || 0) + Math.PI / 2 * 3;
     n = n || 5;
     skip = skip || (Math.floor(n / 2) + 1);
@@ -139,6 +138,9 @@ window.downloader = window.canvas.toBlob ? function() {
 };
 
 window.reset = function() {
+  if (!window.localStorage) {
+    window.localStorage = {};
+  }
   window.localStorage.bg = '#FFFFFF';
   window.localStorage.fg = '#000000';
   window.localStorage.shape = 'circle';
@@ -146,71 +148,75 @@ window.reset = function() {
   window.localStorage.skip = '0';
   window.localStorage.size = '20';
   window.redo();
-}
+};
 
 window.redo = function() {
   if (window.localStorage) {
     if (window.localStorage.bg) {
-      document.getElementById('bg-p').value = window.localStorage.bg;
+      getById('bg-p').value = window.localStorage.bg;
     }
-    window.bg(document.getElementById('bg-p').value);
+    window.bg(getById('bg-p').value);
     if (window.localStorage.fg) {
-      document.getElementById('fg-p').value = window.context.fillStyle = window.localStorage.fg;
+      getById('fg-p').value = window.context.fillStyle = window.localStorage.fg;
     }
     if (window.localStorage.shape) {
-      document.getElementById('shape-p').value = window.shape = window.localStorage.shape;
+      getById('shape-p').value = window.shape = window.localStorage.shape;
       if (window.shape === 'star') {
-        document.getElementById('star').removeAttribute('hidden');
+        getById('star').removeAttribute('hidden');
       } else {
-        document.getElementById('star').setAttribute('hidden', 'hidden');
+        getById('star').setAttribute('hidden', 'hidden');
       }
     }
     if (window.localStorage.points) {
-      document.getElementById('points-p').value = window.points = window.localStorage.points;
+      getById('points-p').value = window.points = window.localStorage.points;
     }
     if (window.localStorage.skip) {
-      document.getElementById('skip-p').value = window.skip = window.localStorage.skip;
+      getById('skip-p').value = window.skip = window.localStorage.skip;
     }
     if (window.localStorage.size) {
-      document.getElementById('size-p').value = window.size = window.localStorage.size;
+      getById('size-p').value = window.size = window.localStorage.size;
     }
   } else {
     window.localStorage = {};
   }
-}
+};
 
 window.update = function() {
-  window.bg(window.localStorage.bg = document.getElementById('bg-p').value);
-  window.localStorage.fg = window.context.fillStyle = document.getElementById('fg-p').value;
-  var shape = document.getElementById('shape');
+  window.localStorage.fg = window.context.fillStyle = getById('fg-p').value;
+  var shape = getById('shape-p').value;
   if (window.shapes.hasOwnProperty(shape)) {
     window.localStorage.shape = window.shape = shape;
-    if (shape == 'star') {
-      document.getElementById('star').removeAttribute('hidden');
+    if (shape === 'star') {
+      getById('star').removeAttribute('hidden');
     } else {
-      document.getElementById('star').setAttribute('hidden', 'hidden');
+      getById('star').setAttribute('hidden', 'hidden');
     }
   }
-  var points = document.getElementById('points-p').value;
+  var points = getById('points-p').value;
   if (!isNaN(points)) {
     window.points = +points;
     window.localStorage.points = points;
   }
-  var points = document.getElementById('skip-p').value;
+  var skip = getById('skip-p').value;
   if (!isNaN(skip)) {
     window.skip = +skip;
     window.localStorage.skip = skip;
   }
-  var size = document.getElementById('size-p').value;
+  var size = getById('size-p').value;
   if (!isNaN(size)) {
     window.size = +size;
     window.localStorage.size = size;
   }
 };
 
+window.update.bg = function() {
+  window.bg(window.localStorage.bg = getById('bg-p').value);
+  window.update();
+};
+
 </script>
 <br><pre>
-Background colour: <input id="bg-p" type="color" oninput="window.update();" onclick="window.update();" value="#FFFFFF"><br>
+Background colour: <input id="bg-p" type="color" oninput="window.update.bg();" onclick="window.update();" value="#FFFFFF"><br>
 Shape colour: <input id="fg-p" type="color" oninput="window.update();" onclick="window.update();" value="#000000"><br>
 Shape: <select id="shape-p" oninput="window.update();" onclick="window.update();">
   <option value="circle">Circle</option>
@@ -222,9 +228,9 @@ Points: <input id="points-p" type="number" oninput="window.update();" onclick="w
 Skip: <input id="skip-p" type="number" oninput="window.update();" onclick="window.update();" value="0" step="1" min="0"><br>
 </span>
 Size: <input id="size-p" type="number" oninput="window.update();" onclick="window.update();" value="20" step="any" min="0" max="500"><br>
-<input type="submit" onclick="window.downloader(), window.update();" onclick="window.update();" value="Download image"><br>
+<input type="submit" onclick="window.downloader(); window.update();" value="Download image"><br>
 <input type="reset" onclick="window.reset();" value="Reset"><br>
 </pre>
-<script>window.redo();</script>
+<script>window.redo(); window.update();</script>
 </body>
 </html>
