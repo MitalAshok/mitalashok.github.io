@@ -4,3 +4,6 @@
 [submodule "xkcd-Tweaks"]
 	path = xkcd-Tweaks
 	url = https://github.com/MitalAshok/xkcd-Tweaks.git
+[submodule "SwitchTile"]
+	path = SwitchTile
+	url = https://github.com/MitalAshok/SwitchTile
