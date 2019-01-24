@@ -1,6 +1,3 @@
-[submodule "drawception-notification-script"]
-	path = drawception-notification-script
-	url = https://github.com/MitalAshok/drawception-notification-script.git
 [submodule "xkcd-Tweaks"]
 	path = xkcd-Tweaks
 	url = https://github.com/MitalAshok/xkcd-Tweaks.git
