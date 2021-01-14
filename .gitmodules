@@ -3,4 +3,7 @@
 	url = https://github.com/MitalAshok/xkcd-Tweaks.git
 [submodule "SwitchTile"]
 	path = SwitchTile
-	url = https://github.com/MitalAshok/SwitchTile
+	url = https://github.com/MitalAshok/SwitchTile.git
+[submodule "state_population_flag"]
+	path = state_population_flag
+	url = https://github.com/MitalAshok/state_population_flag.git
