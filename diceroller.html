@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark">
+
+<head>
+    <title>Dice Roll Simulator</title>
+    <!-- Add Bootstrap CSS from a CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="mt-5">Dice Roll Simulator</h1>
+        <p>Enter a roll string as below. You can use operators like `<=` or `>` to evaluate logical true or false. </p>
+        <p>Beware: when evaluated these expressions turn into `1` and `0` for true and false respectively</p>
+        <p>Limitations:
+            <list>
+                <li>Dividing by zero might return zero. It also taints every other operation, unless in the discarded branch of a conditional expression.</li>
+            </list>
+        </p>
+        <form id="rollSimForm" class="mt-3">
+            <div class="mb-3">
+                <label for="rollstring" class="form-label">Roll String:</label>
+                <input type="text" id="rollstring" class="form-control" name="rollstringInput"
+                    placeholder="2d20kh1 + 3 + 3" required> <div id="rollstringinvalid" class="invalid-feedback">Unknown error (see console)</div><br><br>
+            </div>
+            <div class="mb-3">
+                <label for="iterations" class="form-label">Iteration Number:</label>
+                <input type="number" id="iterations" class="form-control" name="iterationsInput" placeholder="10000" value="10000"
+                    required><br><br>
+            </div>
+
+            <input type="submit" class="btn btn-primary" value="Submit">
+        </form>
+
+    </div>
+
+    <!-- Create a Bootstrap container for statistics -->
+    <div id="statistics" class="container mt-5">
+        <h2>Statistics</h2>
+        <p><strong>Mean:</strong> <span id="meanValue">N/A</span></p>
+        <p><strong>Median:</strong> <span id="medianValue">N/A</span></p>
+        <p><strong>Mode:</strong> <span id="modeValue">N/A</span></p>
+        <p><strong>IQR:</strong> <span id="iqrValue">N/A</span></p>
+        <p><strong>Range:</strong> <span id="rangeText">[ N/A, N/A ] (N/A)</span></p>
+    </div>
+
+    <div class="container">
+        <label for="histogramtype">Display type</label>
+        <select name="histogramtype" class="form-select" id="histogramtype" value="raw">
+            <option value="raw">Raw rolls</option>
+            <option value="pdf">Probability distribution</option>
+            <option value="cdf">Cumulative distribution</option>
+            <option value="sf">1 - Cumulative distribution</option>
+        </select>
+    </div>
+    <div id="histogram" class="mt-5"></div>
+
+    <!-- Footer -->
+    <footer class="bg-light text-center ">
+
+        <!-- Copyright -->
+        <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.8)">
+            C++/WASM Diceroller || Version: <span id="ver">1</span> || Repo: <a class="text-light"
+                href="https://github.com/MitalAshok/diceroller">github:MitalAshok/Diceroller</a> || Inspired by and web interface taken from <a class="text-light"
+                href="https://gitlab.com/asimm.hirani/rust-diceroller">Rust Diceroller @ Gitlab.com</a>
+            <br>
+            &copy; 2023 Copyright:
+            <a class="text-light" href="https://asimmhirani.me/">Asimm Hirani</a>
+            <br>
+            (Used under fair dealing)
+        </div>
+        <!-- Copyright -->
+
+    </footer>
+    <!-- Footer -->
+
+    <script src="./diceroller/dist/bundle.js"></script>
+    <script>
+        let lastRollString = null
+        let generate512 = null
+        let simulatedData = []
+        let showmax = null
+        let histogramStatistics = null
+
+        function updateView() {
+            if (simulatedData.length === 0) return
+
+            const type = document.getElementById("histogramtype").value;
+            const isNormalised = type != "raw";
+            const isCumulative = type == "cdf" || type == "sf";
+
+            // Create a new histogram trace
+            const trace = {
+                x: Float64Array.from(simulatedData.subarray(0, showmax), i => Number(i)),
+                type: "histogram",
+                histnorm: isNormalised ? "probability" : "",
+                cumulative: {
+                    enabled: isCumulative,
+                    direction: type == "sf" ? "decreasing" : "increasing",
+                },
+            };
+
+            // Define layout options for the histogram
+            const layout = {
+                title: type == "pdf" ? "Empirical Probability Distribution Function" : type == "cdf" ? "Empirical Cumulative Distribution Function" : type == "sf" ? "Empirical Survival Function (chance to pass a DC x check)" : "Histogram of Empirical Results",
+                xaxis: { title: type == "sf" ? "DC" : "Value" },
+                yaxis: {
+                    title: isNormalised ? "Probability" : "Frequency",
+                    // // Set the aspect ratio to enforce 2:3
+                    // scaleanchor: 'x',
+                    // scaleratio: 2 / 3,
+                },
+            };
+
+            // Plot the histogram in the 'histogram' div
+            Plotly.newPlot('histogram', [trace], layout);
+
+            // Display statistics
+            const { mean, mode, quartiles: [min, q1, median, q3, max] } = histogramStatistics;
+            const iqr = q3 - q1;
+
+            document.getElementById("meanValue").textContent = mean.toFixed(2);
+            document.getElementById("medianValue").textContent = median.toFixed(2);
+            if (mode.length === 1) {
+                document.getElementById("modeValue").textContent = '' + mode[0];
+            } else {
+                document.getElementById("modeValue").textContent = "[ " + mode.slice(0, 20).join(", ") + (mode.length > 20 ? ", ..." : "") + " ]";
+            }
+            document.getElementById("iqrValue").textContent = iqr.toFixed(2);
+            document.getElementById("rangeText").textContent = "[ " + min.toFixed(2) + ", " + max.toFixed(2) + " ] (" + (max - min).toFixed(2) + ")";
+
+        }
+
+        // Helper function to calculate the mean
+        function calculateMean(data) {
+            const sum = data.reduce((acc, value) => acc + value, 0n);
+            const length = BigInt(data.length)
+            const whole = Number(sum / length)
+            const fraction = Number(sum % length) / data.length
+            return whole + fraction;
+        }
+
+        // Helper function to calculate the mode
+        function calculateMode(data) {
+            const counts = {};
+            let mode = [];
+            let maxCounts = 0;
+            for (const value of data) {
+                const newCount = (counts[value] = (counts[value] || 0) + 1)
+                if (newCount > maxCounts) {
+                    mode = [ value ];
+                    maxCounts = newCount
+                } else if (newCount === maxCounts) {
+                    mode.push(value)
+                }
+            }
+            return mode;
+        }
+
+        // Helper function to calculate quartiles for the IQR and median
+        function calculateQuartiles(data) {
+            const sortedData = data.slice().sort((a, b) => a > b ? 1 : a === b ? 0 : -1);
+            const N = sortedData.length;
+            // Returns the nth quartile
+            const Q = n => {
+                const i = (N - 1) / 4 * n;
+                const partial = i % 1;
+                const lower = Number(sortedData[i - partial]);
+                if (partial === 0) return lower;
+                const upper = Number(sortedData[i - partial + 1]);
+                return lower * (1 - partial) + upper * partial;
+            }
+
+            return [Q(0), Q(1), Q(2), Q(3), Q(4)];
+        }
+
+        function calculateStatistics(data) {
+            return { mean: calculateMean(data), mode: calculateMode(data), quartiles: calculateQuartiles(data) }
+        }
+
+        document.getElementById("rollSimForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            // Get the form values
+            const rollStringValue = document.getElementById("rollstring").value.replace(/^\s+|\s+$/g, '');
+            const iterationsValue = parseInt(document.getElementById("iterations").value);
+
+            if (rollStringValue !== lastRollString) {
+                try {
+                    generate512 = window.ready_instance(rollStringValue)
+                    document.getElementById("rollstring").classList.remove("is-invalid")
+                } catch (e) {
+                    document.getElementById("rollstring").classList.add("is-invalid")
+                    if (e instanceof RangeError) {
+                        document.getElementById("rollstringinvalid").textContent = e.message
+                        return
+                    } else {
+                        document.getElementById("rollstringinvalid").textContent = 'Unknown error (See console)'
+                    }
+                    throw e
+                }
+                lastRollString = rollStringValue
+                simulatedData = []
+                showmax = 0
+            }
+
+            const newHash = "#rollstring=" + encodeURIComponent(rollStringValue) + "&iterations=" + iterationsValue + "&t=" + document.getElementById("histogramtype").value;
+            if (location.hash !== newHash) {
+                history.replaceState(undefined, undefined, newHash);
+            }
+
+            if (iterationsValue > simulatedData.length) {
+                const simulationRuns = Math.ceil(iterationsValue / 512)
+                let i = simulatedData.length / 512
+                const newSimulatedData = new BigInt64Array(simulationRuns*512)
+                newSimulatedData.subarray(0, i*512).set(simulatedData)
+                simulatedData = newSimulatedData
+                for (; i < simulationRuns; ++i) {
+                    newSimulatedData.subarray(i * 512, (i + 1) * 512).set(generate512())
+                }
+            }
+            if (showmax !== iterationsValue) {
+              showmax = iterationsValue
+              histogramStatistics = calculateStatistics(simulatedData.subarray(0, showmax))
+            }
+            
+            updateView()
+        });
+
+        if (location.hash) {
+            const search = new URLSearchParams(location.hash.slice(1));  // (Remove leading #)
+            const rollStringValue = search.get("rollstring");
+            if (rollStringValue) document.getElementById("rollstring").value = rollStringValue;
+            const iterationsValue = +search.get("iterations");
+            if (iterationsValue) document.getElementById("iterations").value = iterationsValue;
+            const type = search.get("t");
+            if (type) document.getElementById("histogramtype").value = type;
+        }
+
+        document.getElementById("histogramtype").addEventListener("change", () => {
+            if (typeof histogramData !== 'undefined') {
+                updateView();
+
+                const search = new URLSearchParams(location.hash.slice(1));
+                const newType = document.getElementById("histogramtype").value;
+                if (search.get("t") != newType) {
+                    search.set("t", newType);
+                    history.replaceState(undefined, undefined, "#" + search);
+                }
+            }
+        })
+    </script>
+
+    <!-- Add Bootstrap JavaScript from a CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" async></script>
+
+</body>
+
+</html>

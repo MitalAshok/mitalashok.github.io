@@ -7,3 +7,6 @@
 [submodule "state_population_flag"]
 	path = state_population_flag
 	url = https://github.com/MitalAshok/state_population_flag.git
+[submodule "diceroller"]
+	path = diceroller
+	url = https://github.com/MitalAshok/diceroller
