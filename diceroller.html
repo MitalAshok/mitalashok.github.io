@@ -240,15 +240,13 @@
         }
 
         document.getElementById("histogramtype").addEventListener("change", () => {
-            if (typeof histogramData !== 'undefined') {
-                updateView();
+            updateView();
 
-                const search = new URLSearchParams(location.hash.slice(1));
-                const newType = document.getElementById("histogramtype").value;
-                if (search.get("t") != newType) {
-                    search.set("t", newType);
-                    history.replaceState(undefined, undefined, "#" + search);
-                }
+            const search = new URLSearchParams(location.hash.slice(1));
+            const newType = document.getElementById("histogramtype").value;
+            if (search.get("t") != newType) {
+                search.set("t", newType);
+                history.replaceState(undefined, undefined, "#" + search);
             }
         })
     </script>
